@@ -35,6 +35,9 @@ import torchvision
 import _init_paths
 import models
 
+import warnings
+warnings.simplefilter('ignore')
+
 from config import cfg
 from config import update_config
 from core.inference import get_multi_stage_outputs
@@ -209,7 +212,7 @@ def main():
     skip_frame_cnt = round(fps / args.inferenceFps)
     frame_width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    outcap = cv2.VideoWriter('{}/{}_pose.avi'.format(args.outputDir, os.path.splitext(os.path.basename(args.videoFile))[0]),
+    outcap = cv2.VideoWriter('{}/video/{}_pose.avi'.format(args.outputDir, os.path.splitext(os.path.basename(args.videoFile))[0]),
                              cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), int(skip_frame_cnt), (frame_width, frame_height))
 
     count = 0
@@ -221,8 +224,8 @@ def main():
         if not ret:
             break
 
-        if count % skip_frame_cnt != 0:
-            continue
+        # if count % skip_frame_cnt != 0:
+        #     continue
 
         image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
@@ -231,33 +234,33 @@ def main():
         # Clone 1 image for debugging purpose
         image_debug = image_bgr.copy()
 
-        now = time.time()
+        # now = time.time()
         pose_preds = get_pose_estimation_prediction(
             cfg, pose_model, image_pose, args.visthre, transforms=pose_transform)
-        then = time.time()
+        # then = time.time()
         if len(pose_preds) == 0:
             count += 1
             continue
 
-        print("Find person pose in: {} sec".format(then - now))
+        # print("Find person pose in: {} sec".format(then - now))
 
         new_csv_row = []
         for coords in pose_preds:
             # Draw each point on image
             for coord in coords:
                 x_coord, y_coord = int(coord[0]), int(coord[1])
-                cv2.circle(image_debug, (x_coord, y_coord), 4, (255, 0, 0), 2)
+                # cv2.circle(image_debug, (x_coord, y_coord), 4, (255, 0, 0), 2)
                 new_csv_row.extend([x_coord, y_coord])
 
-        total_then = time.time()
-        text = "{:03.2f} sec".format(total_then - total_now)
-        cv2.putText(image_debug, text, (100, 50), cv2.FONT_HERSHEY_SIMPLEX,
-                    1, (0, 0, 255), 2, cv2.LINE_AA)
+        # total_then = time.time()
+        # text = "{:03.2f} sec".format(total_then - total_now)
+        # cv2.putText(image_debug, text, (100, 50), cv2.FONT_HERSHEY_SIMPLEX,
+        #             1, (0, 0, 255), 2, cv2.LINE_AA)
 
         csv_output_rows.append(new_csv_row)
-        img_file = os.path.join(pose_dir, 'pose_{:08d}.jpg'.format(count))
-        cv2.imwrite(img_file, image_debug)
-        outcap.write(image_debug)
+        # img_file = os.path.join(pose_dir, 'pose_{:08d}.jpg'.format(count))
+        # cv2.imwrite(img_file, image_debug)
+        # outcap.write(image_debug)
 
     # write csv
     csv_headers = ['frame']
@@ -270,7 +273,7 @@ def main():
     else:
         raise ValueError('Please implement keypoint_index for new dataset: %s.' % cfg.DATASET.DATASET_TEST)
 
-    csv_output_filename = os.path.join(args.outputDir, 'pose-data.csv')
+    csv_output_filename = os.path.join(args.outputDir, 'data/', args.videoFile.split('/')[-1].split('.')[0] + '.csv')
     with open(csv_output_filename, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(csv_headers)
